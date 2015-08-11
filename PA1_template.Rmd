@@ -1,25 +1,190 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+###This is an R Markdown document for Peer Assessment 1 for Module #5 - Reproducible Research.###  
 
 
-## Loading and preprocessing the data
+**Loading the data and Omitting rows with NA value in steps**
+```{r}
+library(ggplot2)
+library(lattice)
+mydata = na.omit(read.csv("activity.csv"))
+```
 
 
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
+**Calculating the total number of steps taken per day**
+```{r}
+TotalStep <- aggregate(mydata$steps,by=list(mydata$date),sum)
+names(TotalStep)[names(TotalStep)=="Group.1"] <- "Date"
+names(TotalStep)[names(TotalStep)=="x"] <- "Steps"
+print(TotalStep)
+```
 
 
 
-## Are there differences in activity patterns between weekdays and weekends?
+**Creating histogram of the total number of steps taken each day**
+```{r}
+hist(TotalStep$Steps,
+     main="Total Number of Steps Taken Each Day",
+     xlab="Total Number of Steps",
+     ylab="Number of Day",
+     col="blue",
+     breaks=15)
+```
+
+
+**Calculating and reporting the mean and median of the total number of steps taken per day**
+```{r}
+Meansteps <- mean(TotalStep$Steps)
+Mediansteps <- median(TotalStep$Steps)
+```
+The mean of the total number of steps taken per day (Meansteps) is **10766.19**
+```{r}
+Meansteps 
+```
+
+The median of the total number of steps taken per day (Mediansteps) is **10765**
+```{r}
+Mediansteps
+```
+
+
+
+**Creating time series plot of the 5 minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)**
+```{r}
+Timeinterval <- aggregate(mydata$steps,by=list(mydata$interval),mean) 
+names(Timeinterval)[names(Timeinterval)=="Group.1"] <- "Interval"
+names(Timeinterval)[names(Timeinterval)=="x"] <- "Mean"
+```
+
+
+```{r}
+plot(Timeinterval$Interval, Timeinterval$Mean, 
+     type='l',
+     xlab='5-min interval',
+     ylab='Avg Across All Days',
+     main='Average Number of Steps Taken',
+     col='red')
+```
+
+**Retreiving the 5-minute interval, on average across all the days in the dataset, which contains the maximum number of steps**
+```{r}
+Maxstep <- max(Timeinterval$Mean)
+Maxnum <- Timeinterval[which(Timeinterval$Mean == Maxstep),]
+```
+
+**835th 5-minute interval** has the maximum number of steps (206.1698)
+```{r}
+Maxnum
+```
+
+
+
+**Calculating and reporting the total number of missing values in the dataset with NA's**
+
+Loading the data which includes the NA values.
+Getting the row count only with NA's
+```{r}
+mydataNA = read.csv("activity.csv")
+mydataImputedValue = read.csv("activity.csv")
+NAset <- subset(mydataNA, is.na(mydataNA$steps))
+TotalNArow <- nrow(NAset)
+```
+
+The total number of missing values in the dataset with NA's is **2304**
+```{r}
+TotalNArow
+```
+
+**Filling in all of the missing values in the dataset with the mean for that 5-minute interval**
+```{r}
+for (i in 1:nrow(mydataImputedValue))
+{
+  if (is.na(mydataImputedValue[i,]$steps))
+  {
+    Intervalvalue <- mydataImputedValue[i,]$interval
+    Imputedinterval <- Timeinterval[Timeinterval[, "Interval"] == Intervalvalue,]$Interval
+    ImputedMean <- Timeinterval[Timeinterval[, "Interval"] == Intervalvalue,]$Mean
+    mydataImputedValue[i,]$steps <- ImputedMean
+  }
+}
+```
+
+**Calculating the total number of steps taken per day and rename column name**
+```{r}
+Totalstepimputedvalue <- aggregate(mydataImputedValue$steps,by=list(mydataImputedValue$date),sum) 
+names(Totalstepimputedvalue)[names(Totalstepimputedvalue)=="Group.1"] <- "Date"
+names(Totalstepimputedvalue)[names(Totalstepimputedvalue)=="x"] <- "Steps"
+```
+
+**Creating a new dataset (mydataImputedValue) that is equal to the original dataset but with the missing data filled in**
+```{r}
+print(Totalstepimputedvalue)
+```
+
+**Creating histogram**
+```{r}
+hist(Totalstepimputedvalue$Steps,
+     main="Total Number of Steps Taken Each Day",
+     xlab="Total Number of Steps",
+     ylab="Number of Day",
+     col="green",
+     breaks=10)
+```
+
+**Calculating the mean and median total number of steps taken per day**
+```{r}
+ImputedValueMeansteps <- mean(Totalstepimputedvalue$Steps)
+ImputedValueMediansteps <- median(Totalstepimputedvalue$Steps)
+```
+
+After filling in the missing value, the mean of the total number of steps taken per day now is **10766.19**.
+```{r}
+ImputedValueMeansteps
+```
+The median of the total number of steps taken per day now is **10766.19**, which is same as mean.
+```{r}
+ImputedValueMediansteps
+```
+
+By comparing with first part of the assignment, we are able to tell that the mean is the same but median is slightly difference. Although the median is slightly difference, but there is minimal impact or nearly no impact of imputing missing data.
+
+
+
+**Creating new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend**
+```{r}
+mydataImputedValue$days <- NA
+days <- weekdays(as.Date(mydataImputedValue$date))
+
+for (i in 1:nrow(mydataImputedValue))
+{
+  if(weekdays(as.Date(mydataImputedValue[i,]$date)) == "Saturday")
+  {
+    mydataImputedValue[i,]$days <- "Weekend"
+  }
+  else if (weekdays(as.Date(mydataImputedValue[i,]$date)) == "Sunday")
+  {
+    mydataImputedValue[i,]$days <- "Weekend"
+  }
+  else
+  {
+    mydataImputedValue[i,]$days <- "weekday"
+  }  
+}  
+```
+
+**Creating panel plot containing a time series plot of the 5 minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).**
+
+```{r}
+DayTimeinterval <- aggregate(mydataImputedValue$steps,by=list(mydataImputedValue$interval,mydataImputedValue$day),mean) 
+
+names(DayTimeinterval)[names(DayTimeinterval)=="Group.1"] <- "Interval"
+names(DayTimeinterval)[names(DayTimeinterval)=="Group.2"] <- "Day"
+names(DayTimeinterval)[names(DayTimeinterval)=="x"] <- "Steps"
+
+xyplot(Steps ~ Interval | Day, 
+       data = DayTimeinterval,
+     type='l',
+     xlab='5-min Interval',
+     ylab='Number of Steps',
+     main='Average Number of Steps Taken',
+     col='purple',
+     layout= c(1,2))
+```
